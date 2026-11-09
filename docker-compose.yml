@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Equipo 1: Broker de Mensajería (Cola de eventos distribuida)
+  broker:
+    image: redis:7-alpine
+    container_name: compuvivienda_broker
+    ports:
+      - "6379:6379"
+    networks:
+      - red_distribuida
+
+  # Equipo 2: API Gateway (Puerta de enlace e ingesta HTTP)
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    container_name: compuvivienda_gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=broker
+      - REDIS_PORT=6379
+    depends_on:
+      - broker
+    networks:
+      - red_distribuida
+
+  # Equipo 3: Procesador Worker (Manejo de hilos en segundo plano)
+  # NOTA DE ARQUITECTURA: Iniciamos con WORKER_THREADS=1 para evidenciar el cuello de botella.
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: compuvivienda_worker
+    environment:
+      - REDIS_HOST=broker
+      - REDIS_PORT=6379
+      - WORKER_THREADS=1
+    depends_on:
+      - broker
+    networks:
+      - red_distribuida
+
+# Red virtual privada aislada donde conviven los tres nodos
+networks:
+  red_distribuida:
+    driver: bridge
