@@ -36,7 +36,7 @@ services:
     environment:
       - REDIS_HOST=broker
       - REDIS_PORT=6379
-      - WORKER_THREADS=1
+      - WORKER_THREADS=4
     depends_on:
       - broker
     networks:
